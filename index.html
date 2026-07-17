@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Detective Algorítmico — Expediente Dinámico</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">🕵️</div>
+    <div class="brand-text">
+      <span class="brand-kicker">Laboratorio Algorítmico</span>
+      <span class="brand-name">Detective Algorítmico</span>
+    </div>
+  </div>
+  <div class="sys-status"><span class="dot"></span> SISTEMA OPERATIVO</div>
+</div>
+
+<div class="shell">
+
+  <!-- ============== SIDEBAR (control persistente) ============== -->
+  <aside class="sidebar">
+    <div class="side-block">
+      <label class="side-label">📁 Expediente activo</label>
+      <select id="selCaso" class="select-caso"></select>
+      <button id="btnNuevoCaso" class="link-btn">✚ Nueva historia / caso</button>
+    </div>
+
+    <div class="side-block">
+      <label class="side-label">⚙️ Pipeline de análisis</label>
+      <ol class="pipeline" id="pipeline">
+        <li data-step="cargar"><span class="p-num">01</span><span class="p-body"><span class="p-title">Cargar expediente</span><span class="p-sub">Datos y testimonios</span></span><span class="p-check">✓</span></li>
+        <li data-step="grafo"><span class="p-num">02</span><span class="p-body"><span class="p-title">Construir grafo</span><span class="p-sub">Lista de adyacencia</span></span><span class="p-check">✓</span></li>
+        <li data-step="dfs"><span class="p-num">03</span><span class="p-body"><span class="p-title">Ejecutar DFS</span><span class="p-sub">Ciclos y componentes</span></span><span class="p-check">✓</span></li>
+        <li data-step="bt"><span class="p-num">04</span><span class="p-body"><span class="p-title">Backtracking CSP</span><span class="p-sub">Combinaciones y poda</span></span><span class="p-check">✓</span></li>
+        <li data-step="mc"><span class="p-num">05</span><span class="p-body"><span class="p-title">Monte Carlo</span><span class="p-sub">10,000 simulaciones</span></span><span class="p-check">✓</span></li>
+        <li data-step="qs"><span class="p-num">06</span><span class="p-body"><span class="p-title">QuickSort final</span><span class="p-sub">Ranking descendente</span></span><span class="p-check">✓</span></li>
+      </ol>
+    </div>
+
+    <button id="btnEjecutarTodo" class="btn-primary btn-block">▶ Ejecutar investigación</button>
+    <button id="btnReiniciar" class="link-btn muted">↺ Reiniciar análisis</button>
+
+    <div class="side-legend">
+      <div><span class="lg-dot lg-teal"></span> Coartada confirmada</div>
+      <div><span class="lg-dot lg-red"></span> Coartada contradicha</div>
+      <div><span class="lg-dot lg-gold"></span> Candidato activo</div>
+      <div><span class="lg-emoji">🔪</span> Sospechoso culpable</div>
+    </div>
+  </aside>
+
+  <!-- ============== MAIN ============== -->
+  <main class="main">
+
+    <!-- NAV DE PANTALLAS -->
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-view="resumen"><span class="tab-ico">🔎</span> Resumen del caso</button>
+      <button class="tab" data-view="analisis"><span class="tab-ico">🎲</span> Simulación &amp; ranking</button>
+      <button class="tab" data-view="expediente"><span class="tab-ico">🗂️</span> Sospechosos &amp; testimonios</button>
+      <button class="tab" data-view="doc"><span class="tab-ico">📐</span> Complejidad</button>
+    </nav>
+
+    <!-- ======================================================= -->
+    <!-- PANTALLA 1 — RESUMEN (lo más importante, primera vista) -->
+    <!-- ======================================================= -->
+    <div class="view active" id="view-resumen">
+
+      <section class="case-header">
+        <div class="case-header-top">
+          <div class="case-id" id="caseIdTag">EXPEDIENTE #DA-001</div>
+          <div class="case-meta">
+            <div class="meta-item">
+              <span class="meta-label">🕐 Ventana crítica</span>
+              <input id="metaVentana" class="meta-input" type="text" value="20:30 — 21:00">
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">🎯 Objeto del caso</span>
+              <input id="metaObjeto" class="meta-input" type="text" value="Bonifacio Choquehuanca">
+            </div>
+          </div>
+        </div>
+        <input id="caseTitulo" class="case-title-input" type="text" value="El asesinato de Bonifacio Choquehuanca">
+        <textarea id="caseDescripcion" class="case-desc-input" rows="2">Hacienda Wiñay Marka, a orillas del lago Titicaca. El hacendado fue encontrado sin vida en su estudio.</textarea>
+      </section>
+
+      <section class="stat-cards">
+        <div class="stat-card">
+          <span class="sc-label">👥 Sujetos</span>
+          <span class="sc-value" id="statSujetos">0</span>
+          <span class="sc-sub">nodos analizados</span>
+        </div>
+        <div class="stat-card">
+          <span class="sc-label">🤝 Coartadas</span>
+          <span class="sc-value" id="statCoartadas">0</span>
+          <span class="sc-sub">relaciones mutuas</span>
+        </div>
+        <div class="stat-card">
+          <span class="sc-label">✂️ Podas</span>
+          <span class="sc-value" id="statPodas">—</span>
+          <span class="sc-sub">ramas descartadas</span>
+        </div>
+        <div class="stat-card hipotesis">
+          <span class="sc-label">🚨 Hipótesis líder</span>
+          <span class="sc-value sc-name" id="statHipotesis">—</span>
+          <span class="sc-sub" id="statHipotesisSub">sin ejecutar aún</span>
+        </div>
+      </section>
+
+      <section class="grid-2">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <span class="panel-kicker">Estructura avanzada</span>
+              <h3>🕸️ Red de coartadas</h3>
+            </div>
+            <span class="badge" id="badgeCiclos">— ciclos</span>
+          </div>
+          <svg id="board" viewBox="0 0 720 440" xmlns="http://www.w3.org/2000/svg"></svg>
+          <p class="panel-note">Las líneas verdes son ciclos de corroboración circular detectados mediante DFS. Los círculos punteados son sospechosos aún sin veredicto. El 🔪 marca al culpable señalado por el motor CSP.</p>
+          <div class="actions">
+            <button id="btnDFSCiclos" class="btn-ghost">🔁 Detectar ciclos (DFS)</button>
+            <button id="btnComponentes" class="btn-ghost">🧩 Componentes conexas</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <span class="panel-kicker">Motor CSP</span>
+              <h3>🧠 Hipótesis algorítmica</h3>
+            </div>
+            <span class="badge" id="badgeCSP">pendiente</span>
+          </div>
+
+          <div class="csp-hero">
+            <div class="csp-icon" id="cspIcon">🕵️</div>
+            <div>
+              <span class="csp-label">Hipótesis con mayor consistencia</span>
+              <span class="csp-name" id="cspNombre">—</span>
+            </div>
+          </div>
+
+          <div class="csp-stats">
+            <div><span class="cs-n" id="cspNodos">—</span><span class="cs-l">nodos visitados</span></div>
+            <div><span class="cs-n" id="cspCulpables">—</span><span class="cs-l">culpable(s)</span></div>
+            <div><span class="cs-n" id="cspAhorro">—</span><span class="cs-l">poda lograda</span></div>
+          </div>
+
+          <div class="declaracion-box" id="declaracionBox">
+            <span class="db-label">💬 Testimonio destacado</span>
+            <p id="declaracionTexto">Aún no hay testimonios cargados en este expediente.</p>
+          </div>
+
+          <div class="actions">
+            <button id="btnResolver" class="btn-ghost">▶ Ejecutar backtracking</button>
+            <button id="btnReset" class="btn-ghost muted" disabled>↺ Reiniciar resultado</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- PANTALLA 2 — ANÁLISIS PROBABILÍSTICO + CONSOLA -->
+    <!-- ======================================================= -->
+    <div class="view" id="view-analisis">
+      <section class="grid-2">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <span class="panel-kicker">Análisis probabilístico</span>
+              <h3>📊 Ranking de culpabilidad</h3>
+            </div>
+            <span class="badge" id="badgeMC">0 completadas</span>
+          </div>
+          <div class="actions">
+            <button id="btnMonteCarlo" class="btn-ghost" disabled>🎲 Simular 10,000 escenarios</button>
+            <button id="btnRanking" class="btn-ghost" disabled>⇅ Ordenar ranking (QuickSort)</button>
+          </div>
+          <div id="barras" class="barras"></div>
+          <table id="tablaRanking" class="tabla-ranking" style="display:none;">
+            <thead><tr><th>#</th><th>Sospechoso</th><th>Probabilidad</th><th>Veredicto CSP</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="panel terminal-panel">
+          <div class="panel-head">
+            <div>
+              <span class="panel-kicker">Consola</span>
+              <h3>🖥️ detective_algoritmico.log</h3>
+            </div>
+            <button id="btnLimpiarLog" class="link-btn muted">Limpiar</button>
+          </div>
+          <div class="terminal" id="terminal"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- PANTALLA 3 — GESTIÓN DEL EXPEDIENTE (agregar historia) -->
+    <!-- ======================================================= -->
+    <div class="view" id="view-expediente">
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <span class="panel-kicker">Gestión del expediente</span>
+            <h3>🗂️ Sospechosos y testimonios</h3>
+          </div>
+          <span class="badge">editable en vivo</span>
+        </div>
+        <p class="panel-note">Nada viene fijo en el algoritmo: agrega, edita o elimina sospechosos y testimonios y todo el análisis se recalcula sobre lo que ingreses aquí. Para empezar una historia completamente nueva, usa <strong>"✚ Nueva historia / caso"</strong> en la barra lateral izquierda; ahí puedes escribir tu propio caso desde cero y volver a esta pantalla para poblarlo.</p>
+
+        <div class="edit-grid">
+          <div class="edit-col">
+            <h4>👤 Sospechosos</h4>
+            <div class="form-row form-row-sospechoso">
+              <div class="field"><label>Nombre</label><input id="inNombre" type="text" placeholder="Ej: Vecino"></div>
+              <div class="field"><label>Rol / relación</label><input id="inRol" type="text" placeholder="Ej: Jardinero"></div>
+              <div class="field field-sm"><label>Credibilidad</label><input id="inCred" type="number" min="0" max="1" step="0.05" value="0.75"></div>
+              <div class="field field-btn"><button id="btnAddSospechoso" class="btn-ghost btn-add">+ Agregar</button></div>
+            </div>
+            <div class="table-wrap">
+              <table class="tabla-datos" id="tablaSospechosos">
+                <thead><tr><th>Id</th><th>Nombre</th><th>Rol</th><th>Cred.</th><th></th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="edit-col">
+            <h4>💬 Testimonios</h4>
+            <div class="form-row form-row-testimonio">
+              <div class="field"><label>Testigo</label><select id="inTestigo"></select></div>
+              <div class="field"><label>Sobre</label><select id="inAcusado"></select></div>
+              <div class="field field-sm"><label>Tipo</label>
+                <select id="inTipo"><option value="acusa">Acusa</option><option value="coartada">Confirma coartada</option></select>
+              </div>
+              <div class="field field-lg"><label>Declaración</label><input id="inDeclaracion" type="text" placeholder='Ej: "Lo vi entrar solo a las 20:50"'></div>
+              <div class="field field-btn"><button id="btnAddTestimonio" class="btn-ghost btn-add">+ Agregar</button></div>
+            </div>
+            <div class="table-wrap">
+              <table class="tabla-datos" id="tablaTestimonios">
+                <thead><tr><th>Testigo</th><th></th><th>Sobre</th><th>Declaración</th><th></th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top:14px;">
+          <button id="btnVaciar" class="link-btn muted">🗑️ Vaciar todos los datos del expediente</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- PANTALLA 4 — COMPLEJIDAD -->
+    <!-- ======================================================= -->
+    <div class="view" id="view-doc">
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <span class="panel-kicker">Documentación técnica</span>
+            <h3>📐 Análisis de complejidad</h3>
+          </div>
+        </div>
+        <div class="stat-cards" style="margin-top:4px;">
+          <div class="stat-card"><span class="sc-label">n sospechosos</span><span class="sc-value" id="statN">0</span></div>
+          <div class="stat-card"><span class="sc-label">espacio 2ⁿ</span><span class="sc-value" id="statEspacio">1</span></div>
+          <div class="stat-card"><span class="sc-label">nodos explorados</span><span class="sc-value" id="statNodos">—</span></div>
+          <div class="stat-card"><span class="sc-label">ahorro por poda</span><span class="sc-value" id="statAhorro">—</span></div>
+        </div>
+
+        <div class="complexity-grid">
+          <div class="complexity-block">
+            <h4>🕸️ Grafo de coartadas — DFS</h4>
+            <table><tbody>
+              <tr><td>Mejor caso</td><td>O(V + E)</td></tr>
+              <tr><td>Caso promedio</td><td>O(V + E)</td></tr>
+              <tr><td>Peor caso</td><td>O(V + E) — un DFS visita cada nodo y cada arista a lo más una vez.</td></tr>
+            </tbody></table>
+          </div>
+          <div class="complexity-block">
+            <h4>🧠 Backtracking — CSP con bitmask + poda</h4>
+            <table><tbody>
+              <tr><td>Mejor caso</td><td>O(n·m)</td></tr>
+              <tr><td>Caso promedio</td><td>O(2^(n/2)·m) empírico</td></tr>
+              <tr><td>Peor caso</td><td>O(2ⁿ·m) — casi sin contradicciones entre testimonios.</td></tr>
+            </tbody></table>
+          </div>
+          <div class="complexity-block">
+            <h4>🎲 Monte Carlo — probabilístico</h4>
+            <table><tbody>
+              <tr><td>Mejor caso</td><td>O(S·(n+m))</td></tr>
+              <tr><td>Caso promedio</td><td>O(S·(n+m))</td></tr>
+              <tr><td>Peor caso</td><td>O(S·(n+m)) — siempre corre las S simulaciones completas.</td></tr>
+            </tbody></table>
+          </div>
+          <div class="complexity-block">
+            <h4>⇅ QuickSort — ranking final</h4>
+            <table><tbody>
+              <tr><td>Mejor caso</td><td>O(n log n)</td></tr>
+              <tr><td>Caso promedio</td><td>O(n log n)</td></tr>
+              <tr><td>Peor caso</td><td>O(n²) — entrada casi ordenada con pivote fijo.</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer>Detective Algorítmico — Grafos · Backtracking (CSP) · Monte Carlo · QuickSort</footer>
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
